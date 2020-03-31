@@ -1,3 +1,6 @@
 
-.vs/FFT/v16/.suo
-.vs/FFT/v16/Browse.VC.db
+.vs/*
+Debug/*
+*.sln
+*.filters
+graphics.h
