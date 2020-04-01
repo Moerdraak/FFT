@@ -8,6 +8,16 @@ private:
     double* Yval; // Y axes
     int Chunk = 10000;
     int DataSize = Chunk;
+    
+    template <class TType>
+    void SetNull(TType * Xyz, int Size) //void TData::SetNull(<TType>* Xyz, int Size)
+    {
+        for (int I = 0; I < Size; I++) // !!!!!! FIX THIS !!!!!!!!!!
+        {
+            Xyz[I] = 0;
+        }
+    }
+
 public:
     //    CONSTRUCTORS
     TData(void) { Xval = NULL; Yval = NULL; }; // CONSTRUCTOR: Default
@@ -20,6 +30,10 @@ public:
     // FUNCTIONS
     void ReadData(std::string FileName, std::string* ErrMsg);
 
+
+    // FUNCTIONS - ARRAY
+
+
     // FUNCTIONS - TRIVIAL
     double X(int Pos); // Returns the value of 'Xval' at position 'Pos'
     double Y(int Pos); // Returns the value of 'Yval' at position 'Pos'
@@ -30,6 +44,8 @@ public:
     int Len(void); // Returns DataSize - The length of the array
     void SetX(int Pos,  double Val);
     void SetY(int Pos, double Val);
+    void ReSize(int Val);
+    
 };
 
 //****************************************************************************
@@ -40,6 +56,9 @@ TData::TData(int Size) // CONSTRUCTOR: Default
     Xval = new double[Size]; 
     Yval = new double[Size];
     DataSize = Size;
+
+    SetNull(Xval, Size);
+    SetNull(Yval, Size);
 }
 
 //****************************************************************************
@@ -79,6 +98,56 @@ TData::~TData(void) // DESTRUCTOR: Destructor
 {
     delete[] Xval;
     delete[] Yval;
+}
+
+/*---------------------------------------------------------------------------------------------------
+  FUNCTION: ReadData
+  INPUT:
+  DESCRIPTION:
+  RETURN:
+  ----------------------------------------------------------------------------------------------------*/
+void TData::ReSize(int Val)
+{
+    if (Xval == NULL)
+    {
+        Xval = new double[Val];
+        Yval = new double[Val];
+        SetNull(Xval, Val);
+        SetNull(Yval, Val);
+    }
+    else if (DataSize == Val)
+    {
+        // Do Nothing
+    }
+    else if (DataSize < Val)
+    {
+        double* Tmp = new double[Val];
+        SetNull(Tmp, Val);
+
+        std::copy(Xval, Xval + DataSize, Tmp);
+        delete[] Xval;
+        Xval = Tmp;
+
+        Tmp = new double[Val];
+        SetNull(Tmp, Val);
+        std::copy(Yval, Yval + DataSize, Tmp);
+        delete[] Yval;
+        Yval = Tmp;
+    }
+    else
+    {
+        double* Tmp = new double[Val];
+
+        std::copy(Xval, Xval + Val, Tmp);
+        delete[] Xval;
+        Xval = Tmp;
+
+        Tmp = new double[Val];
+        std::copy(Yval, Yval + Val, Tmp);
+        delete[] Yval;
+        Yval = Tmp;
+    }
+    DataSize = Val;
 }
 
 /*---------------------------------------------------------------------------------------------------
@@ -205,8 +274,6 @@ const double  * TData::X(void) {
 
     return (const double*)Xval; 
 }
-
-
 
 /*---------------------------------------------------------------------------------------------------
   FUNCTION: TData::Y(void)

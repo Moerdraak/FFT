@@ -2,7 +2,6 @@
 #include <complex>
 #include <iostream>
 #include <valarray>
-#include <vector>
 #include "data.h"
 
 
@@ -18,18 +17,10 @@ struct MyArray {
 };
 
 int Time2Freq(TData  * Data, TData *FreqData);
-void MyFFT(TData* Data, TData* FreqData, int Start, int End);
 void fft(CArray& x);
 
-template <class ValType>
-complex<ValType>* Num2Complex(const ValType * Data, complex<ValType>* CData, int Len)
-{
-    for (int I = 0; I < Len; I++) 
-    {
-        CData[I] = Data[I];
-    }
-    return CData;
-}
+//template <class ValType>
+complex<double>* FillComp(const double* Data, complex<double>* CData, int Len, int N);
 
 
 /*---------------------------------------------------------------------------------------------------
@@ -40,88 +31,74 @@ RETURN:
 ----------------------------------------------------------------------------------------------------*/
 int Time2Freq(TData * Data, TData *FreqData) {
 
-    int FSize = Data->Len();
+    // First determine the biggest 2^N value that fits inside this dataset
+    int FSize = pow(2, floor(log2(Data->Len())));
+    int NyqSize = FSize / 2; // since FSize will always be even this will always be an integer
+    int RemainingSize = Data->Len();
+    int N = log2(FSize); // Get the value of N for 2^N of the Intermediate Dataset
+    
+    // Add one for the last value e.g for 100Hz it would display 99.9Hz if you don't add this.
+    FreqData->ReSize(NyqSize + 1);
+
+    complex<double>* CompData = new complex<double>[FSize]; 
+    // Factor = [Sample Frequency]/[fft data size]
+    float Factor = ((Data->Len() - 1) / (Data->X(Data->Len() - 1) - Data->X(0))) / FSize;
+    //  float Freq = (Data->Len() - 1) / (Data->X(Data->Len() - 1) - Data->X(0));
+
+    // Populate FreqData's Freq collumn
+    for (int I = 0; I < NyqSize + 1; I++) {
+        FreqData->SetX(I, Factor * I);
+    }
+
     int Start = 0;
-    int End = pow(2, (int)log2(FSize)) - 1; // Get the correct chunk size for the fft function
+    int End = FSize - 1; // 
+    int CSize = End - Start + 1; // Chunk Size
 
-        while (FSize != pow(2, (int)log2(FSize))) {
-        
-        cout << "Start at: " << Start << " Up to: " << End << " = " << End - Start + 1 << endl;
-
-        int CSize = End - Start + 1;
+    while (CSize > 8) 
+    {
         double* SizedData = new double[CSize];
-        complex<double>* CompData = new Complex[CSize];
-        valarray<Complex> Cdata(Num2Complex(Data->Y(SizedData, Start, End), CompData, CSize), CSize);
-        delete[] SizedData;
-        delete[] CompData;
+        FillComp(Data->Y(SizedData, Start, End), CompData, CSize, N);
+        delete[] SizedData; // cleaning up
 
+        CArray Cdata(CompData, FSize);
         fft(Cdata);
-        cout << endl << "Output from FFT" << endl;
-        for (int I = 0; I < CSize / 2; I++) {
-            if (Cdata[I].real() > 0.01) {
-                cout << I << " : " << Cdata[I] << endl;
-            }
-        }
 
-        float Factor = (Data->Len() - 1) / (Data->X(Data->Len() - 1) - Data->X(0)) / CSize; // Factor = [Sample Freqeuncy]/[fft data size]
-        for (int I = 0; I <= CSize / 2; I++) {
-            FreqData->SetX(I, Factor * I);
-            FreqData->SetY(I, Cdata[I].real());
-            //      cout << I << " " ;
-        }
+        int ScaleN = pow(2, N - (int)log2(CSize));
 
-        cout << FreqData->X(0) << " " << FreqData->X(1) << " " << FreqData->X(2) << endl;
+        for (int I = 0; I <= NyqSize; I++) {
+            
+            FreqData->SetY(I, FreqData->Y(I) + Cdata[I].real() / ScaleN);
+        }
         
         Start = 1 + End; // Move the Start position to the next value in Data
-        FSize = FSize - pow(2, (int)log2(FSize)); // Get the Size of the remaining data;
-        End = Start + pow(2, (int)log2(FSize))-1; // Get the correct End position in Data according to FSize
+        RemainingSize = RemainingSize - CSize;
+        CSize = pow(2, floor(log2(RemainingSize)));
+        End = Start + CSize - 1; // Get the correct End position in Data according to FSize
+     }
+    delete[] CompData; // cleaning up
 
-        if (FSize < 15) {
-            cout << "  Done with last set of 2^N. " << endl;
-            break;
-        }
-        cout << "Next Data Chunk size: " << pow(2, (int)log2(FSize)) << endl;
-    }
-    cout << "FSize " << FSize << "    power " << pow(2, (int)log2(FSize)) << endl;
-    if (FSize > 15) {
-        cout << endl << "Start at " << Start << " Up to: " << Start + FSize << endl;
-    }
     return 0;
 }
+
 /*---------------------------------------------------------------------------------------------------
-FUNCTION: MyFFT
+FUNCTION: FillComp
 INPUT:
 DESCRIPTION:
 RETURN:
 ----------------------------------------------------------------------------------------------------*/
-void MyFFT(TData* Data, TData *FreqData, int Start, int End) {
+complex<double>* FillComp(const double* Data, complex<double>* CData, int Len, int N)
+{
+    int Repeat = pow(2, N - (int)log2(Len));
 
-    int FSize = End - Start + 1;
-    double* SizedData = new double[FSize];
-    complex<double>* CompData = new Complex[FSize];
-    valarray<Complex> Cdata(Num2Complex(Data->Y(SizedData, Start, End), CompData, FSize), FSize);
-    delete[] SizedData;
-    delete[] CompData;
-
-    /*for (int I = 0; I < FSize; I++) {
-        cout << I << " : " << Cdata[I] << endl;
-    }*/
- //   cout << "Data in MyFFT Cdata[0]:" << Cdata[0] << " Cdata[end]: " << Cdata[FSize-1] << endl;
-    fft(Cdata);
-    cout << endl << "Output from FFT" << endl;
-    for (int I = 0; I < FSize /2; I++) {
-        if (Cdata[I].real() > 0.01) {
-            cout << I << " : " << Cdata[I] << endl;
+    int Pos = 0;
+    for (int I = 0; I < Repeat; I++)
+    {
+        for (int J = 0; J < Len; J++)
+        {
+            CData[Pos++] = Data[J];
         }
     }
-
-    float Factor = (Data->Len() - 1) / (Data->X(Data->Len() - 1) - Data->X(0)) / FSize; // Factor = [Sample Freqeuncy]/[fft data size]
-    for (int I = 0; I <= FSize / 2; I++) {
-        FreqData->SetX(I, Factor * I);
-        FreqData->SetY(I, Cdata[I].real());
- //      cout << I << " " ;
-    }
-    
+    return CData;
 }
 
 /*---------------------------------------------------------------------------------------------------
@@ -132,8 +109,6 @@ DESCRIPTION: !!! WARNING  !!!!
              Therefore massage the data to be available in chunks of 2^n.
 RETURN:
 ----------------------------------------------------------------------------------------------------*/
-// !!! WARNING  !!!! 
-// This only works for datastes with NumberOfPoints = 2^n.   Therefore massage the data to be available in chunks of 2^n.
 void fft(CArray& x)
 {
     // conjugate the complex numbers

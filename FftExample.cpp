@@ -9,7 +9,7 @@ int main()
 
     // Create a FreqData array for holding the data
     // It must be half the size of the Time data (Nyquist)
-    TData FreqData(BaseData.Len()/2); 
+    TData FreqData;
 
     // Call the function that performs the FFT and Massages the data into 
     // an array ready to plot Amplitude versus Frequency
@@ -17,7 +17,7 @@ int main()
 
     cout << endl <<  "NOW BACK TO THE REAL WORLD" << endl << endl;
     for (int I = 0; I < 8192 / 2; I++) {
-        if (FreqData.Y(I) > 0.01) {
+        if (FreqData.Y(I) > 0.5) {
         cout << "Freq: " << FreqData.X(I) << " Ampl: " << FreqData.Y(I) << endl;
         }
     }
