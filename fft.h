@@ -57,11 +57,9 @@ int Time2Freq(TData * Data, TData *FreqData) {
     while (CSize > 8) 
     {
         double* SizedData = new double[CSize];
-        FillComp(Data->Y(SizedData, Start, End), CompData, CSize, N);
-        delete[] SizedData; // cleaning up
-
-        CArray Cdata(CompData, FSize);
+        CArray Cdata(FillComp(Data->Y(SizedData, Start, End), CompData, CSize, N), FSize); // Bad readibility - But just to show I can
         fft(Cdata);
+        delete[] SizedData; // cleaning up
 
         int ScaleN = pow(2, N - (int)log2(CSize));
 
