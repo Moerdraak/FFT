@@ -4,7 +4,7 @@
 int main()
 {
 
-    string MyErr = "All Good"; // Default Value
+    std::string MyErr = "All Good"; // Default Value
 
     // Read in data from a txt file
     TData BaseData("Data.txt", &MyErr); // Or just use TData BaseData("Data.txt");
@@ -18,7 +18,7 @@ int main()
     // Screen dump of the significant points
     for (int I = 0; I < FreqData.Len(); I++) {
         if (FreqData.Y(I) > 0.5) {
-        cout << "Freq: " << FreqData.X(I) << " Ampl: " << FreqData.Y(I) << endl;
+            std::cout << "Freq: " << FreqData.X(I) << " Ampl: " << FreqData.Y(I) << std::endl;
         }
     }
     return 0;
