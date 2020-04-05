@@ -4,3 +4,4 @@ Debug/*
 *.sln
 *.filters
 graphics.h
+FFT.vcxproj
